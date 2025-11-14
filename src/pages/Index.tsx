@@ -285,21 +285,107 @@ Write a LinkedIn post (150–200 words) on the topic: [INSERT TOPIC HERE]
   if (!user) return null;
 
   return <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20">
-      {/* Hero Section */}
-      <div className="bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5 border-b border-border/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
-          <div className="flex justify-between items-start mb-8">
+      {/* Modern Hero Section */}
+      <div className="bg-gradient-to-r from-primary via-primary/90 to-primary/80 border-b border-primary/20 shadow-sf-lg">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+          <div className="flex justify-between items-center mb-8">
             <div className="text-left animate-fade-in">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-2">
-                <span className="gradient-text">Welcome, {user.username}!</span>
+              <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+                Welcome back, {user?.username || 'User'}
               </h1>
-              <p className="text-lg md:text-xl text-muted-foreground max-w-2xl leading-relaxed">
-                Professional content creation made simple. Set your prompt and topic once, deploy anytime with confidence.
+              <p className="text-lg text-white/80">
+                Manage your LinkedIn content creation workflow
               </p>
             </div>
-            <Button variant="outline" onClick={logout} className="hover-glow">
-              <LogOut className="mr-2 h-4 w-4" />
-              Sign Out
+          </div>
+
+          {/* Statistics Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <Card className="bg-white/95 backdrop-blur-sm border-0 shadow-sf-md hover:shadow-sf-lg transition-all duration-300">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Total Posts</p>
+                    <p className="text-3xl font-bold text-primary mt-1">24</p>
+                  </div>
+                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <SendIcon className="h-6 w-6 text-primary" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white/95 backdrop-blur-sm border-0 shadow-sf-md hover:shadow-sf-lg transition-all duration-300">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Engagement</p>
+                    <p className="text-3xl font-bold text-primary mt-1">1.2K</p>
+                  </div>
+                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <ThumbsUp className="h-6 w-6 text-primary" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white/95 backdrop-blur-sm border-0 shadow-sf-md hover:shadow-sf-lg transition-all duration-300">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Scheduled</p>
+                    <p className="text-3xl font-bold text-primary mt-1">5</p>
+                  </div>
+                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Calendar className="h-6 w-6 text-primary" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white/95 backdrop-blur-sm border-0 shadow-sf-md hover:shadow-sf-lg transition-all duration-300">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Reach</p>
+                    <p className="text-3xl font-bold text-primary mt-1">5.8K</p>
+                  </div>
+                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Share2 className="h-6 w-6 text-primary" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Quick Action Buttons */}
+          <div className="flex flex-wrap gap-4">
+            <Button 
+              onClick={() => {
+                setIsEditing(true);
+                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+              }}
+              className="bg-white text-primary hover:bg-white/90 font-semibold shadow-sf-md hover:shadow-sf-lg transition-all duration-300"
+            >
+              <Edit2 className="mr-2 h-5 w-5" />
+              Create New Post
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => setShowPreview(true)}
+              disabled={!lastSubmittedData}
+              className="bg-white/10 text-white border-white/30 hover:bg-white/20 font-semibold backdrop-blur-sm"
+            >
+              <Eye className="mr-2 h-5 w-5" />
+              Preview Last Post
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => navigate('/report')}
+              className="bg-white/10 text-white border-white/30 hover:bg-white/20 font-semibold backdrop-blur-sm"
+            >
+              <MessageCircle className="mr-2 h-5 w-5" />
+              View Reports
             </Button>
           </div>
         </div>
