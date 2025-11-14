@@ -84,7 +84,7 @@ export default function Auth() {
 
       {/* Right Side - Hero Section */}
       <div className="hidden lg:flex flex-1 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,hsl(var(--primary)/0.2),transparent_50%),radial-gradient(circle_at_bottom_left,hsl(var(--primary)/0.15),transparent_50%)] bg-gradient-to-br from-primary/10 via-background to-primary/5"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,hsl(var(--primary-glow)/0.15),transparent_50%),radial-gradient(circle_at_bottom_left,hsl(var(--primary)/0.1),transparent_50%)] bg-gradient-to-br from-primary/5 via-background to-primary/10"></div>
         <div className="relative z-10 flex items-center justify-center p-12 w-full">
           <div className="max-w-lg space-y-8 animate-fade-in">
             <div className="space-y-4">

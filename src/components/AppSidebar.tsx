@@ -33,15 +33,15 @@ export function AppSidebar() {
           <div className="flex items-center justify-between px-4 py-6">
             {open && (
               <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-foreground flex items-center justify-center">
-                  <span className="text-background font-bold text-sm">LP</span>
+                <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+                  <span className="text-primary-foreground font-bold text-sm">LP</span>
                 </div>
                 <SidebarGroupLabel className="text-lg font-bold">LinkedIn PM</SidebarGroupLabel>
               </div>
             )}
             {!open && (
-              <div className="h-8 w-8 rounded-lg bg-foreground flex items-center justify-center mx-auto">
-                <span className="text-background font-bold text-sm">LP</span>
+              <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center mx-auto">
+                <span className="text-primary-foreground font-bold text-sm">LP</span>
               </div>
             )}
             <SidebarTrigger className="ml-auto" />
