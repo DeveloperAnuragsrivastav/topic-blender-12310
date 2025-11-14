@@ -1,0 +1,192 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Modern Professional Design System */
+
+@layer base {
+  :root {
+    /* Modern Gradient Backgrounds */
+    --background: 220 20% 97%;
+    --foreground: 220 15% 15%;
+
+    /* Card System with Depth */
+    --card: 0 0% 100%;
+    --card-foreground: 220 15% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 15% 15%;
+
+    /* Sophisticated Color Palette */
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 221 83% 63%;
+
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 220 15% 20%;
+
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
+
+    --accent: 142 76% 36%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Refined Borders */
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 221 83% 53%;
+
+    /* Modern Radius */
+    --radius: 0.75rem;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(221 83% 53%), hsl(221 83% 63%));
+    --gradient-secondary: linear-gradient(135deg, hsl(220 14% 96%), hsl(220 14% 98%));
+    --gradient-accent: linear-gradient(135deg, hsl(142 76% 36%), hsl(142 76% 46%));
+    
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 hsl(220 15% 15% / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(220 15% 15% / 0.1), 0 2px 4px -2px hsl(220 15% 15% / 0.1);
+    --shadow-lg: 0 10px 15px -3px hsl(220 15% 15% / 0.1), 0 4px 6px -4px hsl(220 15% 15% / 0.1);
+    --shadow-xl: 0 20px 25px -5px hsl(220 15% 15% / 0.1), 0 8px 10px -6px hsl(220 15% 15% / 0.1);
+    --shadow-glow: 0 0 20px hsl(221 83% 53% / 0.15);
+
+    /* Sidebar */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 220 15% 20%;
+    --sidebar-primary: 221 83% 53%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 14% 96%;
+    --sidebar-accent-foreground: 220 15% 20%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 221 83% 53%;
+  }
+
+  .dark {
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+
+    --card: 222 47% 14%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 47% 14%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 221 83% 63%;
+
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 142 76% 36%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217 33% 24%;
+    --input: 217 33% 24%;
+    --ring: 221 83% 53%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(221 83% 53%), hsl(221 83% 63%));
+    --gradient-secondary: linear-gradient(135deg, hsl(217 33% 17%), hsl(217 33% 20%));
+    --gradient-accent: linear-gradient(135deg, hsl(142 76% 36%), hsl(142 76% 46%));
+
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.15);
+    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.2), 0 2px 4px -2px hsl(0 0% 0% / 0.2);
+    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.25), 0 4px 6px -4px hsl(0 0% 0% / 0.25);
+    --shadow-xl: 0 20px 25px -5px hsl(0 0% 0% / 0.3), 0 8px 10px -6px hsl(0 0% 0% / 0.3);
+    --shadow-glow: 0 0 20px hsl(221 83% 53% / 0.25);
+
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 221 83% 53%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 33% 17%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 33% 24%;
+    --sidebar-ring: 221 83% 53%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* Professional Animation Utilities */
+@layer utilities {
+  .animate-fade-in {
+    animation: fade-in 0.5s ease-out;
+  }
+  
+  .animate-slide-up {
+    animation: slide-up 0.5s ease-out;
+  }
+  
+  .animate-scale-in {
+    animation: scale-in 0.3s ease-out;
+  }
+
+  .hover-lift {
+    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-lg;
+  }
+
+  .hover-glow {
+    @apply transition-all duration-300 hover:shadow-[0_0_20px_hsl(var(--primary)/0.15)];
+  }
+
+  .glass-card {
+    @apply backdrop-blur-sm bg-card/80 border border-border/50;
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary to-primary-glow text-transparent bg-clip-text;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
