@@ -23,6 +23,7 @@ export default {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
           glow: "hsl(var(--primary-glow))",
+          dark: "hsl(var(--primary-dark))",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
@@ -65,7 +66,14 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['Salesforce Sans', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
+      },
+      boxShadow: {
+        'sf-sm': 'var(--shadow-sm)',
+        'sf-md': 'var(--shadow-md)',
+        'sf-lg': 'var(--shadow-lg)',
+        'sf-xl': 'var(--shadow-xl)',
+        'sf-glow': 'var(--shadow-glow)',
       },
       keyframes: {
         "accordion-down": {
