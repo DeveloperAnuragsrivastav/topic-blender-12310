@@ -5,22 +5,59 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const { login, signup } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isLogin) {
-      login(username, password);
-    } else {
-      signup(username, password);
+    setIsLoading(true);
+
+    try {
+      if (isLogin) {
+        const { error } = await login(email, password);
+        if (error) throw error;
+        toast({
+          title: "Success",
+          description: "Logged in successfully",
+        });
+        navigate('/');
+      } else {
+        if (!username.trim()) {
+          toast({
+            title: "Error",
+            description: "Please enter a username",
+            variant: "destructive"
+          });
+          setIsLoading(false);
+          return;
+        }
+        const { error } = await signup(email, password, username);
+        if (error) throw error;
+        toast({
+          title: "Success",
+          description: "Account created successfully",
+        });
+        navigate('/');
+      }
+    } catch (error: any) {
+      console.error('Auth error:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Authentication failed. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
-    navigate('/');
   };
 
   return (
@@ -41,17 +78,35 @@ export default function Auth() {
             <CardContent className="pt-6">
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="username" className="text-sm font-semibold">Username</Label>
+                  <Label htmlFor="email" className="text-sm font-semibold">Email</Label>
                   <Input
-                    id="username"
-                    type="text"
-                    placeholder="Enter your username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
+                    id="email"
+                    type="email"
+                    placeholder="Enter your email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     required
+                    disabled={isLoading}
                     className="h-12 border-input"
                   />
                 </div>
+
+                {!isLogin && (
+                  <div className="space-y-2">
+                    <Label htmlFor="username" className="text-sm font-semibold">Username</Label>
+                    <Input
+                      id="username"
+                      type="text"
+                      placeholder="Choose a username"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      required={!isLogin}
+                      disabled={isLoading}
+                      className="h-12 border-input"
+                    />
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label htmlFor="password" className="text-sm font-semibold">Password</Label>
                   <Input
@@ -61,17 +116,28 @@ export default function Auth() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    disabled={isLoading}
                     className="h-12 border-input"
                   />
                 </div>
-                <Button type="submit" className="w-full h-12 text-base font-semibold shadow-sf-md hover:shadow-sf-lg transition-all">
-                  {isLogin ? 'Sign In' : 'Sign Up'}
+                <Button 
+                  type="submit" 
+                  className="w-full h-12 text-base font-semibold shadow-sf-md hover:shadow-sf-lg transition-all"
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Loading...' : (isLogin ? 'Sign In' : 'Sign Up')}
                 </Button>
                 <div className="text-center pt-2">
                   <button
                     type="button"
-                    onClick={() => setIsLogin(!isLogin)}
-                    className="text-sm text-primary hover:text-primary-dark font-medium transition-colors"
+                    onClick={() => {
+                      setIsLogin(!isLogin);
+                      setEmail('');
+                      setPassword('');
+                      setUsername('');
+                    }}
+                    disabled={isLoading}
+                    className="text-sm text-primary hover:text-primary-dark font-medium transition-colors disabled:opacity-50"
                   >
                     {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
                   </button>

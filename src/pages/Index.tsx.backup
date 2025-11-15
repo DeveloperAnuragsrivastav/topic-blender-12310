@@ -7,19 +7,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Edit2, Send, Save, Play, Pause, Upload, X, Eye, ThumbsUp, MessageCircle, Share2, Send as SendIcon, Calendar, LogOut, Loader } from "lucide-react";
+import { Edit2, Send, Save, Play, Pause, Upload, X, Eye, ThumbsUp, MessageCircle, Share2, Send as SendIcon, Calendar, LogOut } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import promptAudio from "@/assets/prompt-templates-audio.mp3";
 import configAudio from "@/assets/configuration-audio.mp3";
-import { 
-  saveConfiguration, 
-  updateConfiguration, 
-  getLatestConfiguration, 
-  createSubmission,
-  updateSubmissionStatus,
-  logWebhookCall
-} from "@/lib/db";
-import { Configuration } from "@/lib/types";
 
 const timeSlots = ["7 AM", "8 AM", "9 AM", "10 AM", "11 AM", "12 PM"];
 const repeatOptions = [
@@ -30,89 +21,55 @@ const repeatOptions = [
   { label: "5 Days", value: "5days" },
   { label: "Daily", value: "daily" },
 ];
-
 interface SavedData {
   prompt: string;
   topic: string;
   image?: string;
 }
-
 const Index = () => {
-  const { user, logout, loading: authLoading } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (!user) {
       navigate('/auth');
     }
-  }, [user, navigate, authLoading]);
-
+  }, [user, navigate]);
   const [prompt, setPrompt] = useState("");
   const [topic, setTopic] = useState("");
   const [uploadedImage, setUploadedImage] = useState<string>("");
   const [isEditing, setIsEditing] = useState(true);
   const [savedData, setSavedData] = useState<SavedData | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isConfigPlaying, setIsConfigPlaying] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [lastSubmittedData, setLastSubmittedData] = useState<SavedData | null>(null);
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [selectedRepeat, setSelectedRepeat] = useState<string>("");
-  const [configId, setConfigId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const configAudioRef = useRef<HTMLAudioElement>(null);
-  const { toast } = useToast();
-
-  const WEBHOOK_URL = import.meta.env.VITE_WEBHOOK_URL || "https://n8n.gignaati.com/webhook-test/07e74f76-8ca8-4b43-87f9-0d95a0ee8bae";
-
-  // Load saved configuration from Supabase on component mount
+  const {
+    toast
+  } = useToast();
+  const WEBHOOK_URL = "https://n8n.gignaati.com/webhook-test/07e74f76-8ca8-4b43-87f9-0d95a0ee8bae";
   useEffect(() => {
-    if (user?.id) {
-      loadConfiguration();
-    }
-  }, [user?.id]);
-
-  const loadConfiguration = async () => {
-    if (!user?.id) return;
-    
-    setIsLoading(true);
-    try {
-      const { data: config, error } = await getLatestConfiguration(user.id);
-      
-      if (error) {
-        console.error('Error loading configuration:', error);
-        return;
-      }
-
-      if (config) {
-        setSavedData({
-          prompt: config.prompt,
-          topic: config.topic,
-          image: config.image,
-        });
-        setPrompt(config.prompt);
-        setTopic(config.topic);
-        setUploadedImage(config.image || "");
-        setSelectedTime(config.scheduled_time || "");
-        setSelectedRepeat(config.repeat_frequency || "");
-        setConfigId(config.id);
+    // Load saved data from localStorage
+    const stored = localStorage.getItem("webhookData");
+    if (stored) {
+      try {
+        const data = JSON.parse(stored);
+        setSavedData(data);
+        setPrompt(data.prompt);
+        setTopic(data.topic);
+        setUploadedImage(data.image || "");
         setIsEditing(false);
+      } catch (e) {
+        console.error("Error parsing saved data:", e);
       }
-    } catch (error) {
-      console.error("Error loading configuration:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load configuration",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
     }
-  };
-
-  const handleSave = async () => {
+  }, []);
+  const handleSave = () => {
     if (!prompt.trim() || !topic.trim()) {
       toast({
         title: "Error",
@@ -121,65 +78,19 @@ const Index = () => {
       });
       return;
     }
-
-    if (!user?.id) {
-      toast({
-        title: "Error",
-        description: "User not authenticated",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const data = {
-        prompt,
-        topic,
-        image: uploadedImage,
-        scheduled_time: selectedTime,
-        repeat_frequency: selectedRepeat,
-      };
-
-      let error;
-      
-      if (configId) {
-        // Update existing configuration
-        const result = await updateConfiguration(configId, data);
-        error = result.error;
-      } else {
-        // Save new configuration
-        const result = await saveConfiguration(user.id, data);
-        error = result.error;
-        if (result.data) {
-          setConfigId(result.data.id);
-        }
-      }
-
-      if (error) throw error;
-
-      setSavedData({
-        prompt,
-        topic,
-        image: uploadedImage,
-      });
-      setIsEditing(false);
-      toast({
-        title: "Success",
-        description: "Configuration saved successfully"
-      });
-    } catch (error) {
-      console.error('Error saving configuration:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save configuration. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    const data = {
+      prompt,
+      topic,
+      image: uploadedImage
+    };
+    localStorage.setItem("webhookData", JSON.stringify(data));
+    setSavedData(data);
+    setIsEditing(false);
+    toast({
+      title: "Saved Successfully",
+      description: "Your prompt and topic have been saved"
+    });
   };
-
   const handleSubmit = async () => {
     if (!savedData && (!prompt.trim() || !topic.trim())) {
       toast({
@@ -189,64 +100,24 @@ const Index = () => {
       });
       return;
     }
-
-    if (!user?.id) {
-      toast({
-        title: "Error",
-        description: "User not authenticated",
-        variant: "destructive"
-      });
-      return;
-    }
-
     setIsSubmitting(true);
     try {
       const dataToSend = savedData || {
         prompt,
         topic
       };
-
-      // Create submission record
-      const submissionResult = await createSubmission(user.id, configId || "", dataToSend);
-      if (submissionResult.error) throw submissionResult.error;
-
-      const submissionId = submissionResult.data?.id;
-
-      // Send to webhook
-      const payload = {
-        prompt: dataToSend.prompt,
-        topic: dataToSend.topic,
-        image: dataToSend.image,
-        timestamp: new Date().toISOString()
-      };
-
       const response = await fetch(WEBHOOK_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+          prompt: dataToSend.prompt,
+          topic: dataToSend.topic,
+          image: dataToSend.image,
+          timestamp: new Date().toISOString()
+        })
       });
-
-      // Log webhook call
-      if (submissionId) {
-        await logWebhookCall(
-          user.id,
-          submissionId,
-          payload,
-          response.status,
-          response.ok ? { success: true } : { success: false }
-        );
-      }
-
-      // Update submission status
-      if (submissionId) {
-        await updateSubmissionStatus(
-          submissionId,
-          response.ok ? 'success' : 'failed'
-        );
-      }
-
       if (response.ok) {
         setLastSubmittedData(dataToSend);
         toast({
@@ -267,7 +138,6 @@ const Index = () => {
       setIsSubmitting(false);
     }
   };
-
   const handleEdit = () => {
     setIsEditing(true);
   };
@@ -316,7 +186,6 @@ const Index = () => {
       setIsConfigPlaying(!isConfigPlaying);
     }
   };
-
   const templates = [
     {
       name: "Gignaati",
@@ -413,52 +282,61 @@ Write a LinkedIn post (150–200 words) on the topic: [INSERT TOPIC HERE]
     });
   };
 
-  if (!user || authLoading) return null;
+  if (!user) return null;
 
   return <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20">
-      {/* Hero Section */}
       
-      <div 
-        className="bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5 border-b border-border/50"
-        style={{
-          backgroundImage: "url('/bg.png')",
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundAttachment: 'fixed'
-        }}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
-          <div className="flex justify-between items-start mb-8">
-            <div className="text-left animate-fade-in">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-2">
-                <span className="gradient-text">Welcome, {user.username}!</span>
-              </h1>
-              <p className="text-lg md:text-xl text-muted-foreground max-w-2xl leading-relaxed">
-                Professional content creation made simple. Set your prompt and topic once, deploy anytime with confidence.
-              </p>
-            </div>
-            <Button variant="outline" onClick={logout} className="hover-glow">
-              <LogOut className="mr-2 h-4 w-4" />
-              Sign Out
-            </Button>
-          </div>
+      {/* Hero Section */}
+<div className="relative overflow-hidden border-b border-border/50">
+
+  {/* Soft Blurred Background (visible + clean) */}
+  <div
+    className="absolute inset-0 bg-cover bg-center blur-sm"
+    style={{
+      backgroundImage: "url('/bg.png')",
+    }}
+  ></div>
+
+  {/* Foreground Content (sharp) */}
+  <div className="relative bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
+      <div className="flex justify-between items-start mb-8">
+        <div className="text-left animate-fade-in">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-2">
+            <span className="gradient-text text-white">Welcome, {user.username}!</span>
+          </h1>
+          <p className="text-lg text-white md:text-xl text-muted-foreground max-w-2xl leading-relaxed">
+            Professional content creation made simple. Set your prompt and topic once,
+            deploy anytime with confidence.
+          </p>
         </div>
+
+        <Button variant="outline" onClick={logout} className="hover-glow">
+          <LogOut className="mr-2 h-4 w-4" />
+          Sign Out
+        </Button>
       </div>
+    </div>
+  </div>
+</div>
+
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
-        {/* Prompt Templates Section */}
+       {/* Prompt Templates Section */}
         <section className="mb-12 animate-slide-up">
-          <div className="flex items-center justify-between mb-6 pb-4 border-b border-border/50">
+          <div className="flex items-center justify-between mb-8 pb-6 border-b-2 border-gradient-to-r from-primary/20 via-primary/40 to-primary/20">
             <div>
-              <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2">Prompt Templates</h2>
-              <p className="text-muted-foreground">Choose from professionally crafted templates</p>
+              <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary via-primary-glow to-accent text-transparent bg-clip-text mb-3">
+                Prompt Templates
+              </h2>
+              <p className="text-muted-foreground text-lg">Choose from professionally crafted templates</p>
             </div>
             <Button
               variant="outline"
               size="icon"
               onClick={toggleAudio}
               aria-label={isPlaying ? "Pause audio" : "Play audio"}
-              className="hover-glow transition-all"
+              className="hover-glow transition-all hover:scale-110 border-2"
             >
               {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
             </Button>
@@ -471,38 +349,49 @@ Write a LinkedIn post (150–200 words) on the topic: [INSERT TOPIC HERE]
             />
           </div>
 
-          <div className="grid lg:grid-cols-2 gap-6">
+          <div className="grid lg:grid-cols-2 gap-8">
             {templates.map((template, index) => (
               <Card 
                 key={template.name} 
-                className="hover-lift border-border/50 shadow-md hover:shadow-xl transition-all duration-300 animate-scale-in"
+                className="group relative overflow-hidden border-2 border-border/40 hover:border-primary/40 shadow-lg hover:shadow-xl transition-all duration-500 animate-scale-in bg-gradient-to-br from-card via-card to-secondary/3"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
-                <CardHeader className="pb-4">
+                {/* Decorative gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/4 via-transparent to-accent/4 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                
+                {/* Animated border effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/30 via-accent/30 to-primary/30 opacity-0 group-hover:opacity-15 blur-xl transition-opacity duration-500"></div>
+                
+                <CardHeader className="pb-6 relative z-10">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <CardTitle className="text-xl font-bold mb-2">{template.name}</CardTitle>
-                      <CardDescription className="text-sm">
+                      <CardTitle className="text-2xl font-bold mb-3 group-hover:text-primary transition-colors duration-300">
+                        {template.name}
+                      </CardTitle>
+                      <CardDescription className="text-base">
                         Professional template ready to customize
                       </CardDescription>
                     </div>
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <span className="text-primary font-bold text-lg">{template.name[0]}</span>
+                    <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-primary/15 to-accent/15 flex items-center justify-center border-2 border-primary/25 group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shadow-md">
+                      <span className="text-primary font-bold text-2xl">{template.name[0]}</span>
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="bg-gradient-to-br from-secondary/50 to-secondary/30 p-4 rounded-lg border border-border/30 max-h-48 overflow-y-auto">
+                <CardContent className="space-y-5 relative z-10">
+                  <div className="bg-gradient-to-br from-secondary/50 via-secondary/35 to-background/70 p-5 rounded-xl border-2 border-border/35 max-h-52 overflow-y-auto backdrop-blur-sm group-hover:border-primary/25 transition-all duration-300">
                     <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed line-clamp-6">
                       {template.text}
                     </p>
                   </div>
                   <Button 
                     onClick={() => handleInsertTemplate(template.text)} 
-                    className="w-full bg-gradient-to-r from-primary to-primary-glow hover:shadow-lg transition-all duration-300"
+                    className="w-full h-12 bg-gradient-to-r from-primary via-primary-glow to-primary hover:from-primary-glow hover:to-primary hover:shadow-2xl hover:shadow-primary/30 hover:-translate-y-1 transition-all duration-300 text-base font-semibold"
                     size="lg"
                   >
-                    Insert Template
+                    <span className="flex items-center gap-2">
+                      Insert Template
+                      <span className="group-hover:translate-x-1 transition-transform duration-300">→</span>
+                    </span>
                   </Button>
                 </CardContent>
               </Card>
@@ -560,11 +449,7 @@ Write a LinkedIn post (150–200 words) on the topic: [INSERT TOPIC HERE]
             </div>
 
             <CardContent className="p-6 md:p-8 space-y-6">
-              {isLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              ) : isEditing ? (
+              {isEditing ? (
                 <div className="space-y-6">
                   <div className="space-y-3">
                     <Label htmlFor="topic" className="text-base font-semibold flex items-center gap-2">
@@ -576,7 +461,6 @@ Write a LinkedIn post (150–200 words) on the topic: [INSERT TOPIC HERE]
                       placeholder="e.g., AI in Education, Digital Transformation..." 
                       value={topic} 
                       onChange={e => setTopic(e.target.value)} 
-                      disabled={isLoading}
                       className="h-12 text-base border-border/50 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
                     />
                   </div>
@@ -591,7 +475,6 @@ Write a LinkedIn post (150–200 words) on the topic: [INSERT TOPIC HERE]
                       placeholder="Enter your detailed prompt template here..." 
                       value={prompt} 
                       onChange={e => setPrompt(e.target.value)} 
-                      disabled={isLoading}
                       className="min-h-[160px] text-base border-border/50 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all resize-none leading-relaxed"
                     />
                   </div>
@@ -608,7 +491,6 @@ Write a LinkedIn post (150–200 words) on the topic: [INSERT TOPIC HERE]
                           type="file"
                           accept="image/*"
                           onChange={handleImageUpload}
-                          disabled={isLoading}
                           className="hidden"
                         />
                         <Label 
@@ -632,7 +514,6 @@ Write a LinkedIn post (150–200 words) on the topic: [INSERT TOPIC HERE]
                           size="icon"
                           className="absolute top-2 right-2"
                           onClick={removeImage}
-                          disabled={isLoading}
                         >
                           <X className="h-4 w-4" />
                         </Button>
@@ -656,7 +537,6 @@ Write a LinkedIn post (150–200 words) on the topic: [INSERT TOPIC HERE]
                               type="button"
                               variant={selectedTime === time ? "default" : "outline"}
                               onClick={() => setSelectedTime(time)}
-                              disabled={isLoading}
                               className="w-full text-sm h-9"
                             >
                               {time}
@@ -674,7 +554,6 @@ Write a LinkedIn post (150–200 words) on the topic: [INSERT TOPIC HERE]
                               type="button"
                               variant={selectedRepeat === option.value ? "default" : "outline"}
                               onClick={() => setSelectedRepeat(option.value)}
-                              disabled={isLoading}
                               className="w-full text-sm h-9"
                             >
                               {option.label}
@@ -696,21 +575,11 @@ Write a LinkedIn post (150–200 words) on the topic: [INSERT TOPIC HERE]
 
                   <Button
                     onClick={handleSave}
-                    disabled={isLoading}
-                    className="w-full gap-2 h-12 text-base bg-gradient-to-r from-primary to-primary-glow hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed" 
+                    className="w-full gap-2 h-12 text-base bg-gradient-to-r from-primary to-primary-glow hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300" 
                     size="lg"
                   >
-                    {isLoading ? (
-                      <>
-                        <Loader className="h-5 w-5 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="h-5 w-5" />
-                        Save Configuration
-                      </>
-                    )}
+                    <Save className="h-5 w-5" />
+                    Save Configuration
                   </Button>
                 </div>
               ) : (
@@ -747,17 +616,8 @@ Write a LinkedIn post (150–200 words) on the topic: [INSERT TOPIC HERE]
                       className="w-full gap-2 h-12 text-base bg-gradient-to-r from-accent to-accent/90 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed" 
                       size="lg"
                     >
-                      {isSubmitting ? (
-                        <>
-                          <Loader className="h-5 w-5 animate-spin" />
-                          Sending...
-                        </>
-                      ) : (
-                        <>
-                          <Send className="h-5 w-5" />
-                          Deploy to Webhook
-                        </>
-                      )}
+                      <Send className="h-5 w-5" />
+                      {isSubmitting ? "Sending..." : "Deploy to Webhook"}
                     </Button>
 
                     {lastSubmittedData && (

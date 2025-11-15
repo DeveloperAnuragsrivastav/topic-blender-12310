@@ -25,7 +25,7 @@ const Report = () => {
         {/* Header */}
         <div className="animate-fade-in">
           <h1 className="text-3xl md:text-4xl font-bold mb-2">
-            <span className="gradient-text">Analytics Report</span>
+            <span className="gradient-text ">Analytics Report</span>
           </h1>
           <p className="text-muted-foreground">
             Track your prompt usage and performance metrics
