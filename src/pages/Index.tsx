@@ -18,6 +18,7 @@ import {
   createSubmission,
   updateSubmissionStatus,
   logWebhookCall
+  , uploadImage
 } from "@/lib/db";
 import { Configuration } from "@/lib/types";
 
@@ -201,22 +202,51 @@ const Index = () => {
 
     setIsSubmitting(true);
     try {
-      const dataToSend = savedData || {
-        prompt,
-        topic
+      // prepare data and handle image upload to Supabase storage if present
+      const dataToSend = { ...(savedData || { prompt, topic }) } as {
+        prompt: string;
+        topic: string;
+        image?: string;
       };
 
-      // Create submission record
+      let uploadedImageUrl: string | undefined = undefined;
+
+      // If there's an image (currently stored as data URL), convert to File and upload
+      if (dataToSend.image && dataToSend.image.startsWith('data:')) {
+        try {
+          const file = await (async () => {
+            const res = await fetch(dataToSend.image as string);
+            const blob = await res.blob();
+            // derive a filename
+            const ext = blob.type.split('/')[1] || 'png';
+            const filename = `upload-${Date.now()}.${ext}`;
+            return new File([blob], filename, { type: blob.type });
+          })();
+
+          const uploadResult = await uploadImage(user.id, file as File);
+          if (uploadResult.error) {
+            console.error('Image upload error:', uploadResult.error);
+          } else {
+            uploadedImageUrl = uploadResult.url || undefined;
+            // replace image in dataToSend with the public url
+            dataToSend.image = uploadedImageUrl;
+          }
+        } catch (err) {
+          console.error('Failed to convert/upload image:', err);
+        }
+      }
+
+      // Create submission record (store image URL if available)
       const submissionResult = await createSubmission(user.id, configId || "", dataToSend);
       if (submissionResult.error) throw submissionResult.error;
 
       const submissionId = submissionResult.data?.id;
 
-      // Send to webhook
-      const payload = {
+      // Send to webhook: instead of sending the full image, send a boolean flag has_image
+      const payload: Record<string, any> = {
         prompt: dataToSend.prompt,
         topic: dataToSend.topic,
-        image: dataToSend.image,
+        has_image: !!uploadedImageUrl || !!dataToSend.image,
         timestamp: new Date().toISOString()
       };
 
