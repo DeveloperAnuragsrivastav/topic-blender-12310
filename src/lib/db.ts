@@ -227,7 +227,10 @@ export async function getWebhookLogs(userId: string, limit = 20) {
 
 // ============ STORAGE OPERATIONS (for images) ============
 
-export async function uploadImage(userId: string, file: File): Promise<{ url: string | null; error: any }> {
+export async function uploadImage(
+  userId: string,
+  file: File
+): Promise<{ url: string | null; path: string | null; error: any }> {
   try {
     const fileName = `${userId}/${Date.now()}-${file.name}`;
     const { data, error } = await supabase.storage
@@ -243,10 +246,10 @@ export async function uploadImage(userId: string, file: File): Promise<{ url: st
       .from('post-images')
       .getPublicUrl(fileName);
 
-    return { url: urlData.publicUrl, error: null };
+    return { url: urlData.publicUrl, path: fileName, error: null };
   } catch (error) {
     console.error('Error uploading image:', error);
-    return { url: null, error };
+    return { url: null, path: null, error };
   }
 }
 

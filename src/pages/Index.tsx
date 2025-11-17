@@ -209,7 +209,8 @@ const Index = () => {
         image?: string;
       };
 
-      let uploadedImageUrl: string | undefined = undefined;
+  let uploadedImageUrl: string | undefined = undefined;
+  let uploadedImagePath: string | null = null;
 
       // If there's an image (currently stored as data URL), convert to File and upload
       if (dataToSend.image && dataToSend.image.startsWith('data:')) {
@@ -230,6 +231,9 @@ const Index = () => {
             uploadedImageUrl = uploadResult.url || undefined;
             // replace image in dataToSend with the public url
             dataToSend.image = uploadedImageUrl;
+            // store the uploaded path/name for sending to the webhook
+            // uploadResult.path is of the form "{userId}/{timestamp}-{originalName}"
+            uploadedImagePath = uploadResult.path || null;
           }
         } catch (err) {
           console.error('Failed to convert/upload image:', err);
@@ -247,6 +251,7 @@ const Index = () => {
         prompt: dataToSend.prompt,
         topic: dataToSend.topic,
         has_image: !!uploadedImageUrl || !!dataToSend.image,
+        image_name: uploadedImagePath,
         timestamp: new Date().toISOString()
       };
 
