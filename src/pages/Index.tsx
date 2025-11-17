@@ -64,6 +64,8 @@ const Index = () => {
   const [configId, setConfigId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const configAudioRef = useRef<HTMLAudioElement>(null);
+  const scheduleTimerRef = useRef<number | null>(null);
+  const [nextRun, setNextRun] = useState<Date | null>(null);
   const { toast } = useToast();
 
   const WEBHOOK_URL = import.meta.env.VITE_WEBHOOK_URL || "https://n8n.gignaati.com/webhook-test/07e74f76-8ca8-4b43-87f9-0d95a0ee8bae";
@@ -165,6 +167,12 @@ const Index = () => {
         image: uploadedImage,
       });
       setIsEditing(false);
+      // schedule next run after saving configuration
+      try {
+        scheduleNextRun();
+      } catch (e) {
+        // ignore scheduling errors
+      }
       toast({
         title: "Success",
         description: "Configuration saved successfully"
@@ -180,6 +188,116 @@ const Index = () => {
       setIsLoading(false);
     }
   };
+
+  // --- Scheduling helpers ---
+  const addDays = (d: Date, days: number) => {
+    const nd = new Date(d);
+    nd.setDate(nd.getDate() + days);
+    return nd;
+  };
+
+  const parseTimeStringToDate = (timeStr: string, base = new Date()) => {
+    // expected formats like "7 AM", "12 PM", "11 AM"
+    const parts = timeStr.trim().split(/\s+/);
+    if (parts.length < 2) return null;
+    const hour = parseInt(parts[0], 10);
+    const meridiem = parts[1].toLowerCase();
+    if (Number.isNaN(hour)) return null;
+    let h = hour % 12;
+    if (meridiem === 'pm') h += 12;
+    const d = new Date(base);
+    d.setHours(h, 0, 0, 0);
+    return d;
+  };
+
+  const repeatToDays = (repeat: string) => {
+    if (!repeat) return 1;
+    const map: Record<string, number> = {
+      daily: 1,
+      week: 7,
+      '2days': 2,
+      '3days': 3,
+      '4days': 4,
+      '5days': 5,
+    };
+    return map[repeat] || 1;
+  };
+
+  const computeNextRun = (timeStr: string, repeat: string) => {
+    if (!timeStr) return null;
+    const now = new Date();
+    let candidate = parseTimeStringToDate(timeStr, now);
+    if (!candidate) return null;
+    const days = repeatToDays(repeat);
+    // advance until candidate is in the future
+    while (candidate <= now) {
+      candidate = addDays(candidate, days);
+    }
+    return candidate;
+  };
+
+  const clearSchedule = () => {
+    if (scheduleTimerRef.current) {
+      window.clearTimeout(scheduleTimerRef.current as number);
+      scheduleTimerRef.current = null;
+    }
+    setNextRun(null);
+  };
+
+  const scheduleNextRun = () => {
+    // use selectedTime and selectedRepeat from state
+    clearSchedule();
+    const sched = computeNextRun(selectedTime, selectedRepeat);
+    if (!sched) return;
+    setNextRun(sched);
+    const ms = sched.getTime() - Date.now();
+    // guard: if ms is too large for setTimeout, schedule a shorter check (24h)
+    const MAX_TIMEOUT = 2147483647; // max signed 32-bit int
+    const delay = ms > MAX_TIMEOUT ? MAX_TIMEOUT : ms;
+    scheduleTimerRef.current = window.setTimeout(async () => {
+      // Only auto-submit if user is authenticated
+      if (user?.id) {
+        console.log('Auto-triggering submission at', new Date().toISOString());
+        try {
+          await handleSubmit();
+        } catch (e) {
+          console.error('Auto-submit error', e);
+        }
+      }
+      // after firing, compute next occurrence and reschedule
+      try {
+        const next = computeNextRun(selectedTime, selectedRepeat);
+        if (next) {
+          setNextRun(next);
+          const nextDelay = next.getTime() - Date.now();
+          scheduleTimerRef.current = window.setTimeout(() => {
+            // call scheduleNextRun recursively to keep repeating
+            scheduleNextRun();
+          }, nextDelay > MAX_TIMEOUT ? MAX_TIMEOUT : nextDelay);
+        } else {
+          scheduleTimerRef.current = null;
+        }
+      } catch (e) {
+        console.error('Error rescheduling next run', e);
+        scheduleTimerRef.current = null;
+      }
+    }, delay);
+  };
+
+  // set up schedule on mount and when selectedTime/selectedRepeat/configId/user change
+  useEffect(() => {
+    // only schedule if we have an active configuration and time selected
+    if (configId && selectedTime) {
+      scheduleNextRun();
+    } else {
+      clearSchedule();
+    }
+
+    return () => {
+      clearSchedule();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [configId, selectedTime, selectedRepeat, user?.id]);
 
   const handleSubmit = async () => {
     if (!savedData && (!prompt.trim() || !topic.trim())) {
