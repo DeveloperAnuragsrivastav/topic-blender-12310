@@ -19,6 +19,7 @@ import {
   updateSubmissionStatus,
   logWebhookCall
   , uploadImage
+  , deleteConfiguration
 } from "@/lib/db";
 import { Configuration } from "@/lib/types";
 
@@ -66,6 +67,11 @@ const Index = () => {
   const configAudioRef = useRef<HTMLAudioElement>(null);
   const scheduleTimerRef = useRef<number | null>(null);
   const [nextRun, setNextRun] = useState<Date | null>(null);
+  const [triggerInterval, setTriggerInterval] = useState<string>('Weeks');
+  const [weeksBetween, setWeeksBetween] = useState<number>(1);
+  const [weekdaysSelected, setWeekdaysSelected] = useState<number[]>([1,2,3,4,5,6,0]);
+  const [triggerHour, setTriggerHour] = useState<number>(7);
+  const [triggerMinute, setTriggerMinute] = useState<number>(0);
   const { toast } = useToast();
 
   const WEBHOOK_URL = import.meta.env.VITE_WEBHOOK_URL || "https://n8n.gignaati.com/webhook-test/07e74f76-8ca8-4b43-87f9-0d95a0ee8bae";
@@ -220,14 +226,34 @@ const Index = () => {
       '4days': 4,
       '5days': 5,
     };
-    return map[repeat] || 1;
+    if (map[repeat]) return map[repeat];
+    const match = repeat.match(/^(\d+)days$/);
+    if (match) return parseInt(match[1], 10);
+    return 1;
   };
 
   const computeNextRun = (timeStr: string, repeat: string) => {
-    if (!timeStr) return null;
     const now = new Date();
+
+    // If weekdays are selected, find the next date matching selected weekdays
+    if (weekdaysSelected && weekdaysSelected.length > 0) {
+      // search up to 365 days ahead
+      for (let i = 0; i < 365; i++) {
+        const candidate = addDays(now, i);
+        const dow = candidate.getDay(); // 0=Sunday..6=Saturday
+        if (weekdaysSelected.includes(dow)) {
+          candidate.setHours(triggerHour, triggerMinute, 0, 0);
+          if (candidate > now) return candidate;
+        }
+      }
+      return null;
+    }
+
+    if (!timeStr) return null;
     let candidate = parseTimeStringToDate(timeStr, now);
     if (!candidate) return null;
+    // apply minute if specified
+    candidate.setMinutes(triggerMinute || 0);
     const days = repeatToDays(repeat);
     // advance until candidate is in the future
     while (candidate <= now) {
@@ -425,6 +451,49 @@ const Index = () => {
     setIsEditing(true);
   };
 
+    const handleClearConfiguration = async () => {
+      if (!user?.id) {
+        toast({ title: 'Error', description: 'User not authenticated', variant: 'destructive' });
+        return;
+      }
+
+      // clear locally if no configId
+      if (!configId) {
+        setSavedData(null);
+        setPrompt('');
+        setTopic('');
+        setUploadedImage('');
+        setSelectedTime('');
+        setSelectedRepeat('');
+        setIsEditing(true);
+        clearSchedule();
+        toast({ title: 'Cleared', description: 'Configuration cleared' });
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const result = await deleteConfiguration(configId);
+        if (result && (result as any).error) throw (result as any).error;
+        // clear UI state
+        setSavedData(null);
+        setPrompt('');
+        setTopic('');
+        setUploadedImage('');
+        setSelectedTime('');
+        setSelectedRepeat('');
+        setConfigId(null);
+        setIsEditing(true);
+        clearSchedule();
+        toast({ title: 'Deleted', description: 'Configuration deleted successfully' });
+      } catch (err) {
+        console.error('Error clearing configuration:', err);
+        toast({ title: 'Error', description: 'Failed to clear configuration', variant: 'destructive' });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -571,32 +640,39 @@ Write a LinkedIn post (150–200 words) on the topic: [INSERT TOPIC HERE]
   return <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20">
       {/* Hero Section */}
       
-      <div 
-        className="bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5 border-b border-border/50"
-        style={{
-          backgroundImage: "url('/bg.png')",
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundAttachment: 'fixed'
-        }}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
-          <div className="flex justify-between items-start mb-8">
-            <div className="text-left animate-fade-in">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-2">
-                <span className="gradient-text">Welcome, {user.username}!</span>
-              </h1>
-              <p className="text-lg md:text-xl text-muted-foreground max-w-2xl leading-relaxed">
-                Professional content creation made simple. Set your prompt and topic once, deploy anytime with confidence.
-              </p>
-            </div>
-            <Button variant="outline" onClick={logout} className="hover-glow">
-              <LogOut className="mr-2 h-4 w-4" />
-              Sign Out
-            </Button>
-          </div>
-        </div>
-      </div>
+     {/* Hero Section */}
+<div
+  className="relative w-full h-[280px] md:h-[360px] lg:h-[420px] border-b border-border/50 overflow-hidden"
+  style={{
+    backgroundImage: "url('/bg.png')",
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    backgroundRepeat: "no-repeat"
+  }}
+>
+  {/* Optional dark overlay for perfect text readability */}
+  <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
+
+  <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center justify-between">
+    <div className="text-left animate-fade-in">
+      <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-2 text-white drop-shadow-lg">
+        Welcome, {user.username}!
+      </h1>
+      <p className="text-lg md:text-xl text-white/90 max-w-2xl leading-relaxed drop-shadow">
+        Professional content creation made simple. Set your prompt and topic once, deploy anytime with confidence.
+      </p>
+    </div>
+
+    <Button
+      variant="outline"
+      onClick={logout}
+      className="hover-glow relative z-10 bg-white/20 backdrop-blur-md text-white border-white/40 hover:bg-white/30"
+    >
+      <LogOut className="mr-2 h-4 w-4" />
+      Sign Out
+    </Button>
+  </div>
+</div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
         {/* Prompt Templates Section */}
@@ -686,13 +762,33 @@ Write a LinkedIn post (150–200 words) on the topic: [INSERT TOPIC HERE]
                       {isConfigPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
                     </Button>
                     {!isEditing && savedData && (
-                      <Button 
-                        variant="outline" 
-                        onClick={handleEdit} 
-                        className="gap-2 hover:bg-primary/10 transition-all"
+                      <>
+                        <Button 
+                          variant="outline" 
+                          onClick={handleEdit} 
+                          className="gap-2 hover:bg-primary/10 transition-all"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                          Edit
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          onClick={handleClearConfiguration}
+                          className="gap-2"
+                        >
+                          <X className="h-4 w-4" />
+                          Clear
+                        </Button>
+                      </>
+                    )}
+                    {isEditing && (savedData || configId) && (
+                      <Button
+                        variant="destructive"
+                        onClick={handleClearConfiguration}
+                        className="gap-2"
                       >
-                        <Edit2 className="h-4 w-4" />
-                        Edit
+                        <X className="h-4 w-4" />
+                        Clear
                       </Button>
                     )}
                   </div>
@@ -799,40 +895,82 @@ Write a LinkedIn post (150–200 words) on the topic: [INSERT TOPIC HERE]
                       Schedule Configuration
                       <span className="text-xs text-muted-foreground font-normal">(Optional)</span>
                     </Label>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label className="text-sm">Select Time (IST)</Label>
-                        <div className="grid grid-cols-2 gap-2">
-                          {timeSlots.map((time) => (
-                            <Button
-                              key={time}
-                              type="button"
-                              variant={selectedTime === time ? "default" : "outline"}
-                              onClick={() => setSelectedTime(time)}
-                              disabled={isLoading}
-                              className="w-full text-sm h-9"
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-1 gap-3">
+                        <div>
+                          <Label className="text-sm">Trigger Interval</Label>
+                          <div className="flex items-center gap-2 mt-2">
+                            <select
+                              value={triggerInterval}
+                              onChange={(e) => setTriggerInterval(e.target.value)}
+                              className="px-3 py-2 rounded-md border border-border/30 bg-background text-sm"
                             >
-                              {time}
-                            </Button>
-                          ))}
+                              <option value="Weeks">Weeks</option>
+                            </select>
+                          </div>
                         </div>
-                      </div>
 
-                      <div className="space-y-2">
-                        <Label className="text-sm">Repeat Frequency</Label>
-                        <div className="grid grid-cols-2 gap-2">
-                          {repeatOptions.map((option) => (
-                            <Button
-                              key={option.value}
-                              type="button"
-                              variant={selectedRepeat === option.value ? "default" : "outline"}
-                              onClick={() => setSelectedRepeat(option.value)}
-                              disabled={isLoading}
-                              className="w-full text-sm h-9"
+                        <div>
+                          <Label className="text-sm">Weeks Between Triggers</Label>
+                          <Input
+                            type="number"
+                            min={1}
+                            value={weeksBetween}
+                            onChange={(e) => setWeeksBetween(Math.max(1, parseInt(e.target.value || '1', 10)))}
+                            className="w-32 mt-2"
+                          />
+                        </div>
+
+                        <div>
+                          <Label className="text-sm">Trigger on Weekdays</Label>
+                          <div className="grid grid-cols-4 gap-2 mt-2">
+                            {['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map((day, idx) => {
+                              // map idx 0..6 -> Monday..Sunday; JS getDay: 0=Sunday
+                              const dayValue = (idx + 1) % 7; // Monday->1 ... Sunday->0
+                              const checked = weekdaysSelected.includes(dayValue);
+                              return (
+                                <label key={day} className="inline-flex items-center gap-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={(e) => {
+                                      if (e.target.checked) setWeekdaysSelected(prev => Array.from(new Set([...prev, dayValue])));
+                                      else setWeekdaysSelected(prev => prev.filter(d => d !== dayValue));
+                                    }}
+                                  />
+                                  <span className="text-sm">{day}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-4">
+                          <div>
+                            <Label className="text-sm">Trigger at Hour</Label>
+                            <select
+                              value={triggerHour}
+                              onChange={(e) => setTriggerHour(parseInt(e.target.value, 10))}
+                              className="mt-2 px-3 py-2 rounded-md border border-border/30 bg-background text-sm"
                             >
-                              {option.label}
-                            </Button>
-                          ))}
+                              {Array.from({ length: 24 }).map((_, h) => (
+                                <option key={h} value={h}>{h}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <Label className="text-sm">Trigger at Minute</Label>
+                            <select
+                              value={triggerMinute}
+                              onChange={(e) => setTriggerMinute(parseInt(e.target.value, 10))}
+                              className="mt-2 px-3 py-2 rounded-md border border-border/30 bg-background text-sm"
+                            >
+                              {Array.from({ length: 60 }).map((_, m) => (
+                                <option key={m} value={m}>{m}</option>
+                              ))}
+                            </select>
+                          </div>
                         </div>
                       </div>
                     </div>
