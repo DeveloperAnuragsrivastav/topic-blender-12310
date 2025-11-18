@@ -889,101 +889,114 @@ Write a LinkedIn post (150–200 words) on the topic: [INSERT TOPIC HERE]
                     )}
                   </div>
 
-                  <div className="space-y-3 pt-2">
-                    <Label className="text-base font-semibold flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
-                      Schedule Configuration
-                      <span className="text-xs text-muted-foreground font-normal">(Optional)</span>
-                    </Label>
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-1 gap-3">
-                        <div>
-                          <Label className="text-sm">Trigger Interval</Label>
-                          <div className="flex items-center gap-2 mt-2">
-                            <select
-                              value={triggerInterval}
-                              onChange={(e) => setTriggerInterval(e.target.value)}
-                              className="px-3 py-2 rounded-md border border-border/30 bg-background text-sm"
-                            >
-                              <option value="Weeks">Weeks</option>
-                            </select>
+                    <div className="space-y-3 pt-2">
+                      <Label className="text-base font-semibold flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        Schedule Configuration
+                        <span className="text-xs text-muted-foreground font-normal">(Optional)</span>
+                      </Label>
+
+                      <div className="grid md:grid-cols-3 gap-4 items-start">
+                        <div className="md:col-span-2 space-y-4">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label className="text-sm">Trigger Interval</Label>
+                              <div className="mt-2">
+                                <select
+                                  value={triggerInterval}
+                                  onChange={(e) => setTriggerInterval(e.target.value)}
+                                  className="w-full px-3 py-2 rounded-md border border-border/30 bg-background text-sm"
+                                >
+                                  <option value="Weeks">Weeks</option>
+                                </select>
+                              </div>
+                            </div>
+
+                            <div>
+                              <Label className="text-sm">Weeks Between Triggers</Label>
+                              <Input
+                                type="number"
+                                min={1}
+                                value={weeksBetween}
+                                onChange={(e) => setWeeksBetween(Math.max(1, parseInt(e.target.value || '1', 10)))}
+                                className="w-full mt-2"
+                              />
+                            </div>
                           </div>
-                        </div>
 
-                        <div>
-                          <Label className="text-sm">Weeks Between Triggers</Label>
-                          <Input
-                            type="number"
-                            min={1}
-                            value={weeksBetween}
-                            onChange={(e) => setWeeksBetween(Math.max(1, parseInt(e.target.value || '1', 10)))}
-                            className="w-32 mt-2"
-                          />
-                        </div>
-
-                        <div>
-                          <Label className="text-sm">Trigger on Weekdays</Label>
-                          <div className="grid grid-cols-4 gap-2 mt-2">
-                            {['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map((day, idx) => {
-                              // map idx 0..6 -> Monday..Sunday; JS getDay: 0=Sunday
-                              const dayValue = (idx + 1) % 7; // Monday->1 ... Sunday->0
-                              const checked = weekdaysSelected.includes(dayValue);
-                              return (
-                                <label key={day} className="inline-flex items-center gap-2">
-                                  <input
-                                    type="checkbox"
-                                    checked={checked}
-                                    onChange={(e) => {
-                                      if (e.target.checked) setWeekdaysSelected(prev => Array.from(new Set([...prev, dayValue])));
-                                      else setWeekdaysSelected(prev => prev.filter(d => d !== dayValue));
+                          <div>
+                            <Label className="text-sm">Trigger on Weekdays</Label>
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map((day, idx) => {
+                                const dayValue = (idx + 1) % 7; // Monday->1 ... Sunday->0
+                                const checked = weekdaysSelected.includes(dayValue);
+                                return (
+                                  <button
+                                    key={day}
+                                    type="button"
+                                    onClick={() => {
+                                      if (weekdaysSelected.includes(dayValue)) setWeekdaysSelected(prev => prev.filter(d => d !== dayValue));
+                                      else setWeekdaysSelected(prev => Array.from(new Set([...prev, dayValue])));
                                     }}
-                                  />
-                                  <span className="text-sm">{day}</span>
-                                </label>
-                              );
-                            })}
+                                    className={`px-3 py-1 rounded-md text-sm border ${checked ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted/10 border-border/30'}`}
+                                  >
+                                    {day.substring(0,3)}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label className="text-sm">Trigger at Hour</Label>
+                              <select
+                                value={triggerHour}
+                                onChange={(e) => setTriggerHour(parseInt(e.target.value, 10))}
+                                className="mt-2 w-full px-3 py-2 rounded-md border border-border/30 bg-background text-sm"
+                              >
+                                {Array.from({ length: 24 }).map((_, h) => (
+                                  <option key={h} value={h}>{h}</option>
+                                ))}
+                              </select>
+                            </div>
+
+                            <div>
+                              <Label className="text-sm">Trigger at Minute</Label>
+                              <select
+                                value={triggerMinute}
+                                onChange={(e) => setTriggerMinute(parseInt(e.target.value, 10))}
+                                className="mt-2 w-full px-3 py-2 rounded-md border border-border/30 bg-background text-sm"
+                              >
+                                {Array.from({ length: 60 }).map((_, m) => (
+                                  <option key={m} value={m}>{m}</option>
+                                ))}
+                              </select>
+                            </div>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-4">
-                          <div>
-                            <Label className="text-sm">Trigger at Hour</Label>
-                            <select
-                              value={triggerHour}
-                              onChange={(e) => setTriggerHour(parseInt(e.target.value, 10))}
-                              className="mt-2 px-3 py-2 rounded-md border border-border/30 bg-background text-sm"
-                            >
-                              {Array.from({ length: 24 }).map((_, h) => (
-                                <option key={h} value={h}>{h}</option>
-                              ))}
-                            </select>
-                          </div>
-
-                          <div>
-                            <Label className="text-sm">Trigger at Minute</Label>
-                            <select
-                              value={triggerMinute}
-                              onChange={(e) => setTriggerMinute(parseInt(e.target.value, 10))}
-                              className="mt-2 px-3 py-2 rounded-md border border-border/30 bg-background text-sm"
-                            >
-                              {Array.from({ length: 60 }).map((_, m) => (
-                                <option key={m} value={m}>{m}</option>
-                              ))}
-                            </select>
+                        <div className="md:col-span-1">
+                          <div className="p-3 bg-muted/30 rounded-lg border border-border/30">
+                            <p className="text-sm font-medium">Next Run</p>
+                            <p className="text-sm mt-2 text-muted-foreground">{nextRun ? nextRun.toLocaleString() : 'Not scheduled'}</p>
+                            <div className="h-px my-3 bg-border/20" />
+                            <p className="text-sm font-medium">Summary</p>
+                            <p className="text-sm mt-2 text-muted-foreground">Interval: {triggerInterval}</p>
+                            <p className="text-sm text-muted-foreground">Weeks between: {weeksBetween}</p>
                           </div>
                         </div>
                       </div>
+
+                      {selectedTime && selectedRepeat && (
+                        <div className="p-3 bg-muted/30 rounded-lg border border-border/30">
+                          <p className="text-sm text-center">
+                            Scheduled for <span className="font-semibold">{selectedTime}</span> repeating{" "}
+                            <span className="font-semibold">{repeatOptions.find(o => o.value === selectedRepeat)?.label}</span>
+                          </p>
+                        </div>
+                      )}
                     </div>
-
-                    {selectedTime && selectedRepeat && (
-                      <div className="p-3 bg-muted/30 rounded-lg border border-border/30">
-                        <p className="text-sm text-center">
-                          Scheduled for <span className="font-semibold">{selectedTime}</span> repeating{" "}
-                          <span className="font-semibold">{repeatOptions.find(o => o.value === selectedRepeat)?.label}</span>
-                        </p>
-                      </div>
-                    )}
-                  </div>
 
                   <Button
                     onClick={handleSave}
